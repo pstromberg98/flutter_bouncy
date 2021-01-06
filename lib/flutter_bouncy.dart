@@ -1,3 +1,4 @@
 library flutter_bouncy;
 
-export 'SliverBouncyList.dart';
+export 'sliver_bouncy_list.dart';
+export 'bouncy_list.dart';

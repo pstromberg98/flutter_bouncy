@@ -1,10 +1,15 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
 class SliverBouncyList extends SliverMultiBoxAdaptorWidget {
+  final double scrollDelta;
+
   const SliverBouncyList({
     Key key,
     @required SliverChildDelegate delegate,
+    @required this.scrollDelta,
   }) : super(key: key, delegate: delegate);
 
   @override
@@ -12,23 +17,37 @@ class SliverBouncyList extends SliverMultiBoxAdaptorWidget {
       SliverMultiBoxAdaptorElement(this, replaceMovedChildren: true);
 
   @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant RenderSliverBouncyList renderObject,
+  ) {
+    renderObject..scrollDelta = scrollDelta;
+  }
+
+  @override
   RenderSliverList createRenderObject(BuildContext context) {
     final SliverMultiBoxAdaptorElement element =
         context as SliverMultiBoxAdaptorElement;
-    return RenderSliverBouncyList(childManager: element);
+    return RenderSliverBouncyList(
+      childManager: element,
+      scrollDelta: scrollDelta,
+    );
   }
 }
 
 class RenderSliverBouncyList extends RenderSliverList {
+  double scrollDelta;
+
   RenderSliverBouncyList({
-    RenderSliverBoxChildManager childManager,
+    @required RenderSliverBoxChildManager childManager,
+    @required this.scrollDelta,
   }) : super(childManager: childManager);
 
   PointerEvent lastPointerEvent;
 
   @override
   void handleEvent(PointerEvent event, covariant HitTestEntry entry) {
-    if (event is PointerMoveEvent) {
+    if (event is! PointerUpEvent && event is! PointerCancelEvent) {
       lastPointerEvent = event;
     }
   }
@@ -83,17 +102,35 @@ class RenderSliverBouncyList extends RenderSliverList {
       );
       if (addExtent) childOffset += mainAxisUnit * paintExtentOf(child);
 
+      var resistance = 0.0;
+
+      if (lastPointerEvent != null) {
+        resistance = (lastPointerEvent.localPosition.dy - childOffset.dy) / 100;
+      }
+
+      final paint = Paint();
+      // context.canvas.drawCircle(
+      //   childOffset,
+      //   10,
+      //   paint,
+      // );
+
+      final yOffset = scrollDelta > 0
+          ? max(scrollDelta, scrollDelta * resistance)
+          : min(scrollDelta, scrollDelta * resistance);
+
+      childOffset += Offset(0, yOffset);
+
       // If the child's visible interval (mainAxisDelta, mainAxisDelta + paintExtentOf(child))
       // does not intersect the paint extent interval (0, constraints.remainingPaintExtent), it's hidden.
       if (mainAxisDelta < constraints.remainingPaintExtent &&
           mainAxisDelta + paintExtentOf(child) > 0)
         context.paintChild(child, childOffset);
 
-      final paint = Paint();
       paint.color = Colors.red;
       context.canvas.drawCircle(
-        lastPointerEvent.position,
-        10,
+        lastPointerEvent?.localPosition ?? Offset(0, 0),
+        6,
         paint,
       );
       child = childAfter(child);
