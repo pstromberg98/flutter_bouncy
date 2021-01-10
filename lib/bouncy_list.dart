@@ -3,63 +3,42 @@ import 'package:flutter_bouncy/sliver_bouncy_list.dart';
 
 class BouncyList extends StatefulWidget {
   final SliverChildDelegate delegate;
+  final bool reverse;
+  final ScrollController controller;
 
-  BouncyList({this.delegate});
+  BouncyList({
+    @required this.delegate,
+    this.reverse = false,
+    this.controller,
+  });
 
   @override
   State<StatefulWidget> createState() => BouncyListState();
 }
 
-class BouncyListState extends State<BouncyList>
-    with SingleTickerProviderStateMixin {
-  final tween = Tween<double>(begin: 0.0, end: 0.0);
-  Animation<double> tweenAnimation;
-  AnimationController controller;
-  ScrollController scrollController;
-  double scrollDelta = 0.0;
-  double lastPixels;
-
-  @override
-  void initState() {
-    scrollController = ScrollController();
-    controller = AnimationController(
-      duration: Duration(milliseconds: 100),
-      vsync: this,
-    );
-    tweenAnimation = controller.drive(tween);
-    CurvedAnimation(parent: tweenAnimation, curve: Curves.ease).addListener(() {
-      setState(() {
-        scrollDelta = tweenAnimation.value;
-        // print(tweenAnimation.value);
-        // print(scrollDelta);
-      });
-    });
-    tweenAnimation.addListener(() {
-      // setState(() {
-      //   scrollDelta = tweenAnimation.value;
-      //   // print(tweenAnimation.value);
-      //   // print(scrollDelta);
-      // });
-    });
-    super.initState();
-  }
-
-  @override
-  void dispose() {
-    controller.dispose();
-    super.dispose();
-  }
+class BouncyListState extends State<BouncyList> {
+  Offset globalPosition;
 
   @override
   Widget build(BuildContext context) {
-    return CustomScrollView(
-      controller: scrollController,
-      slivers: [
-        SliverBouncyList(
-          scrollDelta: scrollDelta,
-          delegate: widget.delegate,
-        ),
-      ],
+    return NotificationListener<ScrollUpdateNotification>(
+      onNotification: (notification) {
+        if (notification.dragDetails != null) {
+          setState(() {
+            globalPosition = notification.dragDetails.globalPosition;
+          });
+        }
+      },
+      child: CustomScrollView(
+        reverse: widget.reverse,
+        controller: widget.controller,
+        slivers: [
+          SliverBouncyList(
+            globalPosition: globalPosition,
+            delegate: widget.delegate,
+          ),
+        ],
+      ),
     );
   }
 }

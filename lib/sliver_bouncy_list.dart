@@ -7,17 +7,27 @@ import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 
 class SliverBouncyList extends SliverMultiBoxAdaptorWidget {
-  final double scrollDelta;
+  final Offset globalPosition;
 
   const SliverBouncyList({
     Key key,
     @required SliverChildDelegate delegate,
-    @required this.scrollDelta,
+    @required this.globalPosition,
   }) : super(key: key, delegate: delegate);
 
   @override
   SliverMultiBoxAdaptorElement createElement() =>
       SliverMultiBoxAdaptorElement(this, replaceMovedChildren: true);
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    covariant RenderSliverBouncyList renderObject,
+  ) {
+    if (globalPosition != null) {
+      renderObject..globalPosition = globalPosition;
+    }
+  }
 
   @override
   RenderSliverBouncyList createRenderObject(BuildContext context) {
@@ -31,6 +41,7 @@ class SliverBouncyList extends SliverMultiBoxAdaptorWidget {
 
 class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
   double lastScrollOffset = 0.0;
+  Offset globalPosition;
   final springMap = <RenderObject, Spring>{};
 
   /// Creates a sliver that places multiple box children in a linear array along
@@ -41,21 +52,22 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     @required RenderSliverBoxChildManager childManager,
   }) : super(childManager: childManager);
 
-  PointerEvent lastPointerEvent;
-
-  @override
-  void handleEvent(PointerEvent event, covariant HitTestEntry entry) {
-    lastPointerEvent = event;
-    markNeedsPaint();
-  }
-
   @override
   void setupParentData(covariant RenderBox child) {
     super.setupParentData(child);
     if (springMap[child] == null) {
+      var i = 0;
       springMap[child] = Spring(() {
-        if (child.attached) {
+        final spring = springMap[child];
+        Future.microtask(() {
+          if (i % 100 == 0) {
+            // print('Length: ${spring.length}');
+          }
           markNeedsPaint();
+          // child.markNeedsLayout();
+        });
+        if (!child.attached) {
+          return false;
         }
       });
     }
@@ -441,7 +453,7 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
   }
 
   void _calculateDelta() {
-    if (lastScrollOffset == null || lastPointerEvent == null) {
+    if (lastScrollOffset == null || globalPosition == null) {
       return;
     }
 
@@ -453,9 +465,8 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
       double delta = constraints.scrollOffset - lastScrollOffset;
 
       if (lastScrollOffset != null) {
-        resistance = (lastPointerEvent.position.dy -
-                child.localToGlobal(Offset(0, 0)).dy) /
-            100;
+        resistance =
+            (globalPosition.dy - child.localToGlobal(Offset(0, 0)).dy) / 100;
       }
 
       final calculatedDelta = (delta > 0
@@ -517,7 +528,7 @@ class Spring {
 
   SpringDescription _getSpringDescription() {
     return const SpringDescription(
-      mass: 30.0,
+      mass: 20.0,
       stiffness: 0.6,
       damping: 0.4,
     );
