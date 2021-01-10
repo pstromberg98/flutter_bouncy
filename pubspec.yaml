@@ -1,6 +1,6 @@
 name: flutter_bouncy
 description: Scrolling with bouncy and natural item movement
-version: 0.0.2
+version: 0.0.4
 author:
 homepage:
 
@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   visibility_detector: ^0.1.5
+  forge2d: ^0.6.0
 
 dev_dependencies:
   flutter_test:

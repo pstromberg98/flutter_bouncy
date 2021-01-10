@@ -52,43 +52,14 @@ class BouncyListState extends State<BouncyList>
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        if (notification is ScrollUpdateNotification) {
-          if (scrollController.position != null) {
-            // setState(() {
-            //   scrollDelta = notification.scrollDelta;
-            // });
-            tween.begin = scrollDelta;
-            tween.end = notification.scrollDelta;
-
-            if (controller.isCompleted) {
-              controller.reset();
-            }
-
-            if (!controller.isAnimating) {
-              controller.forward();
-            }
-          }
-        }
-
-        if (notification is ScrollEndNotification) {
-          // controller.reset();
-          // setState(() {
-          //   scrollDelta = 0;
-          // });
-        }
-        return false;
-      },
-      child: CustomScrollView(
-        controller: scrollController,
-        slivers: [
-          SliverBouncyList(
-            scrollDelta: scrollDelta,
-            delegate: widget.delegate,
-          ),
-        ],
-      ),
+    return CustomScrollView(
+      controller: scrollController,
+      slivers: [
+        SliverBouncyList(
+          scrollDelta: scrollDelta,
+          delegate: widget.delegate,
+        ),
+      ],
     );
   }
 }
