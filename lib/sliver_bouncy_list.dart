@@ -464,7 +464,6 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     }
 
     RenderBox child = firstChild;
-    var i = 0;
     while (child != null) {
       var resistance = 0.0;
 
@@ -480,19 +479,14 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
               : min(delta, delta * resistance.abs()))
           .floorToDouble();
 
-      // print('Calculated Delta: ${calculatedDelta}');
-
       final spring = springMap[child];
       if (spring != null) {
-        springMap[child].setTarget(calculatedDelta);
-      }
-
-      if (i == 0) {
-        // print(calculatedDelta);
+        final reversed = axisDirectionIsReversed(constraints.axisDirection);
+        springMap[child]
+            .setTarget(reversed ? -calculatedDelta : calculatedDelta);
       }
 
       child = childAfter(child);
-      i++;
     }
   }
 }

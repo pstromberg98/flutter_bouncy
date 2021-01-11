@@ -145,6 +145,7 @@ class _MyHomePageState extends State<MyHomePage>
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 10),
             child: AnimatedBouncyList(
+              reverse: true,
               itemBuilder: (ctx, i, anim) {
                 return children[i];
               },

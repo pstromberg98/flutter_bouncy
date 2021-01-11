@@ -1,8 +1,8 @@
 name: flutter_bouncy
 description: Scrolling with bouncy and natural item movement
-version: 0.0.11
-author:
-homepage:
+version: 0.0.12
+homepage: https://github.com/pstromberg98/flutter_bouncy
+repository: https://github.com/pstromberg98/flutter_bouncy
 
 environment:
   sdk: ">=2.7.0 <3.0.0"
