@@ -8,9 +8,15 @@ import 'package:flutter/rendering.dart';
 
 class SliverBouncyList extends SliverMultiBoxAdaptorWidget {
   final Offset globalPosition;
+  final SpringDescription springDescription;
 
   const SliverBouncyList({
     Key key,
+    this.springDescription = const SpringDescription(
+      mass: 20.0,
+      stiffness: 0.6,
+      damping: 0.4,
+    ),
     @required SliverChildDelegate delegate,
     @required this.globalPosition,
   }) : super(key: key, delegate: delegate);
@@ -35,6 +41,7 @@ class SliverBouncyList extends SliverMultiBoxAdaptorWidget {
         context as SliverMultiBoxAdaptorElement;
     return RenderSliverBouncyList(
       childManager: element,
+      springDescription: springDescription,
     );
   }
 }
@@ -43,6 +50,7 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
   double lastScrollOffset = 0.0;
   Offset globalPosition;
   final springMap = <RenderObject, Spring>{};
+  final SpringDescription springDescription;
 
   /// Creates a sliver that places multiple box children in a linear array along
   /// the main axis.
@@ -50,27 +58,25 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
   /// The [childManager] argument must not be null.
   RenderSliverBouncyList({
     @required RenderSliverBoxChildManager childManager,
+    @required this.springDescription,
   }) : super(childManager: childManager);
 
   @override
   void setupParentData(covariant RenderBox child) {
     super.setupParentData(child);
     if (springMap[child] == null) {
-      var i = 0;
       springMap[child] = Spring(() {
-        final spring = springMap[child];
-        Future.microtask(() {
-          if (i % 100 == 0) {
-            // print('Length: ${spring.length}');
-          }
-          markNeedsPaint();
-          // child.markNeedsLayout();
-        });
-        if (!child.attached) {
-          return false;
-        }
-      });
+        markNeedsPaint();
+      }, springDescription);
     }
+  }
+
+  @override
+  void detach() {
+    // for (final spring in springMap.values) {
+    //   spring.dispose();
+    // }
+    super.detach();
   }
 
   @override
@@ -493,23 +499,24 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
 
 class Spring {
   final Function handler;
+  final SpringDescription springDescription;
+  double current = 0.0;
 
   SpringSimulation _simulation;
-  double current = 0.0;
-  double dt = 0;
+  double _dt = 0;
+  Timer _timer;
 
-  Spring(this.handler) {
-    final timer = Timer.periodic(
+  Spring(
+    this.handler,
+    this.springDescription,
+  ) {
+    _timer = Timer.periodic(
       Duration(milliseconds: 1),
       (_) {
         if (_simulation != null) {
-          current = _simulation.x(dt / 100);
-          // print('Current: $current');
+          current = _simulation.x(_dt / 100);
         }
-        if (dt % 1000 == 0) {
-          // print('DT: $dt');
-        }
-        dt++;
+        _dt++;
         handler();
       },
     );
@@ -517,20 +524,16 @@ class Spring {
 
   void setTarget(double target) {
     _simulation = SpringSimulation(
-      _getSpringDescription(),
+      springDescription,
       current,
       target,
       0.01,
     );
 
-    dt = 0;
+    _dt = 0;
   }
 
-  SpringDescription _getSpringDescription() {
-    return const SpringDescription(
-      mass: 20.0,
-      stiffness: 0.6,
-      damping: 0.4,
-    );
+  void dispose() {
+    _timer.cancel();
   }
 }

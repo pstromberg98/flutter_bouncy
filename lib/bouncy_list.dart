@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 import 'package:flutter_bouncy/sliver_bouncy_list.dart';
 
 class BouncyList extends StatefulWidget {
   final SliverChildDelegate delegate;
   final bool reverse;
   final ScrollController controller;
+  final SpringDescription springDescription;
 
   BouncyList({
     @required this.delegate,
     this.reverse = false,
+    this.springDescription,
     this.controller,
   });
 
@@ -36,6 +39,7 @@ class BouncyListState extends State<BouncyList> {
           SliverBouncyList(
             globalPosition: globalPosition,
             delegate: widget.delegate,
+            springDescription: widget.springDescription,
           ),
         ],
       ),
