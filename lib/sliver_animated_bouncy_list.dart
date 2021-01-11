@@ -391,11 +391,12 @@ class AnimatedBouncyList extends StatefulWidget {
   /// ```dart
   /// AnimatedListState animatedList = AnimatedList.of(context);
   /// ```
-  static AnimatedListState of(BuildContext context, {bool nullOk = false}) {
+  static AnimatedBouncyListState of(BuildContext context,
+      {bool nullOk = false}) {
     assert(context != null);
     assert(nullOk != null);
-    final AnimatedListState result =
-        context.findAncestorStateOfType<AnimatedListState>();
+    final AnimatedBouncyListState result =
+        context.findAncestorStateOfType<AnimatedBouncyListState>();
     if (nullOk || result != null) return result;
     throw FlutterError.fromParts(<DiagnosticsNode>[
       ErrorSummary(
