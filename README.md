@@ -2,8 +2,8 @@
 
 ![Logo](https://github.com/pstromberg98/flutter_bouncy/blob/master/media/logo.png)
 
-![Example1](https://github.com/pstromberg98/flutter_bouncy/blob/master/media/example1.gif)
-![Example2](https://github.com/pstromberg98/flutter_bouncy/blob/master/media/example2.gif)
+<img src="https://github.com/pstromberg98/flutter_bouncy/blob/master/media/example1.gif" width="150" />
+<img src="https://github.com/pstromberg98/flutter_bouncy/blob/master/media/example2.gif" width="150" />
 
 
 ## Summary
