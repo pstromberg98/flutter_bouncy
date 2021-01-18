@@ -21,7 +21,7 @@ class SliverBouncyList extends SliverMultiBoxAdaptorWidget {
 
   @override
   SliverMultiBoxAdaptorElement createElement() =>
-      SliverMultiBoxAdaptorElement(this, replaceMovedChildren: true);
+      SliverMultiBoxAdaptorElement(this);
 
   @override
   RenderSliverBouncyList createRenderObject(BuildContext context) {
