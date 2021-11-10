@@ -8,14 +8,14 @@ class BouncyList extends StatelessWidget {
   final SpringDescription springDescription;
   final Axis scrollDirection;
 
-  final List<Widget> children;
+  final List<Widget>? children;
 
-  final IndexedWidgetBuilder itemBuilder;
-  final int itemCount;
+  final IndexedWidgetBuilder? itemBuilder;
+  final int? itemCount;
 
   BouncyList({
     this.reverse = false,
-    this.controller,
+    required this.controller,
     this.scrollDirection = Axis.vertical,
     this.springDescription = const SpringDescription(
       mass: 20.0,
@@ -23,21 +23,22 @@ class BouncyList extends StatelessWidget {
       damping: 0.4,
     ),
     this.children = const [],
-  })  : itemBuilder = null,
-        itemCount = null;
+  })  : this.itemBuilder = null,
+        this.itemCount = null;
 
   BouncyList.builder({
-    @required this.itemBuilder,
-    @required this.itemCount,
+    required this.itemBuilder,
+    required this.itemCount,
     this.reverse = false,
-    this.controller,
+    this.children,
+    required this.controller,
     this.scrollDirection = Axis.vertical,
     this.springDescription = const SpringDescription(
       mass: 20.0,
       stiffness: 0.6,
       damping: 0.4,
     ),
-  }) : children = null;
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -55,13 +56,11 @@ class BouncyList extends StatelessWidget {
   }
 
   SliverChildDelegate _createDelegate() {
-    if (children != null) {
-      return SliverChildListDelegate(children);
-    } else {
-      return SliverChildBuilderDelegate(
-        itemBuilder,
-        childCount: itemCount,
-      );
-    }
+    return children != null
+        ? SliverChildListDelegate(children!)
+        : SliverChildBuilderDelegate(
+            itemBuilder!,
+            childCount: itemCount,
+          );
   }
 }
