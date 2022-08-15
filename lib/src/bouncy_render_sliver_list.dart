@@ -1,82 +1,115 @@
-import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 import 'package:flutter/rendering.dart';
 
-class SliverBouncyList extends SliverMultiBoxAdaptorWidget {
-  final SpringDescription springDescription;
+class BouncyRenderSliverState {
+  final double springLength;
+  final Offset? pointerPosition;
 
-  const SliverBouncyList({
-    Key key,
-    this.springDescription = const SpringDescription(
-      mass: 20.0,
-      stiffness: 0.6,
-      damping: 0.4,
-    ),
-    @required SliverChildDelegate delegate,
-  }) : super(key: key, delegate: delegate);
-
-  @override
-  SliverMultiBoxAdaptorElement createElement() =>
-      SliverMultiBoxAdaptorElement(this);
-
-  @override
-  RenderSliverBouncyList createRenderObject(BuildContext context) {
-    final SliverMultiBoxAdaptorElement element =
-        context as SliverMultiBoxAdaptorElement;
-
-    return RenderSliverBouncyList(
-      childManager: element,
-      springDescription: springDescription,
-    );
-  }
+  BouncyRenderSliverState({
+    required this.springLength,
+    required this.pointerPosition,
+  });
 }
 
-class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
-  double lastScrollOffset = 0.0;
-  final springMap = <RenderObject, Spring>{};
-  final SpringDescription springDescription;
-
-  Offset _globalPosition;
-
+class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   /// Creates a sliver that places multiple box children in a linear array along
   /// the main axis.
   ///
   /// The [childManager] argument must not be null.
-  RenderSliverBouncyList({
-    @required RenderSliverBoxChildManager childManager,
-    @required this.springDescription,
+  BouncyRenderSliverList({
+    required RenderSliverBoxChildManager childManager,
   }) : super(childManager: childManager);
 
-  @override
-  void handleEvent(PointerEvent event, covariant HitTestEntry entry) {
-    super.handleEvent(event, entry);
-    _globalPosition = event.position;
-  }
+  BouncyRenderSliverState _state = BouncyRenderSliverState(
+    springLength: 0,
+    pointerPosition: null,
+  );
 
-  // By default the handleEvent method only is called when children are hit. This makes sure it is always hit
-  @override
-  bool hitTestSelf({double mainAxisPosition, double crossAxisPosition}) => true;
-
-  @override
-  void setupParentData(covariant RenderBox child) {
-    super.setupParentData(child);
-    if (springMap[child] == null) {
-      springMap[child] = Spring(() {
-        markNeedsPaint();
-      }, springDescription);
-    }
+  void setState(BouncyRenderSliverState state) {
+    _state = BouncyRenderSliverState(
+      springLength: state.springLength,
+      pointerPosition: state.pointerPosition,
+    );
+    markNeedsLayout();
   }
 
   @override
-  void detach() {
-    for (final spring in springMap.values) {
-      spring.dispose();
+  void paint(PaintingContext context, Offset offset) {
+    if (firstChild == null) return;
+    // offset is to the top-left corner, regardless of our axis direction.
+    // originOffset gives us the delta from the real origin to the origin in the axis direction.
+    final Offset mainAxisUnit, crossAxisUnit, originOffset;
+    final bool addExtent;
+    switch (applyGrowthDirectionToAxisDirection(
+        constraints.axisDirection, constraints.growthDirection)) {
+      case AxisDirection.up:
+        mainAxisUnit = const Offset(0.0, -1.0);
+        crossAxisUnit = const Offset(1.0, 0.0);
+        originOffset = offset + Offset(0.0, geometry!.paintExtent);
+        addExtent = true;
+        break;
+      case AxisDirection.right:
+        mainAxisUnit = const Offset(1.0, 0.0);
+        crossAxisUnit = const Offset(0.0, 1.0);
+        originOffset = offset;
+        addExtent = false;
+        break;
+      case AxisDirection.down:
+        mainAxisUnit = const Offset(0.0, 1.0);
+        crossAxisUnit = const Offset(1.0, 0.0);
+        originOffset = offset;
+        addExtent = false;
+        break;
+      case AxisDirection.left:
+        mainAxisUnit = const Offset(-1.0, 0.0);
+        crossAxisUnit = const Offset(0.0, 1.0);
+        originOffset = offset + Offset(geometry!.paintExtent, 0.0);
+        addExtent = true;
+        break;
     }
-    super.detach();
+    assert(mainAxisUnit != null);
+    assert(addExtent != null);
+    RenderBox? child = firstChild;
+    while (child != null) {
+      final double mainAxisDelta = childMainAxisPosition(child);
+      final double crossAxisDelta = childCrossAxisPosition(child);
+
+      Offset childOffset = Offset(
+        originOffset.dx +
+            mainAxisUnit.dx * mainAxisDelta +
+            crossAxisUnit.dx * crossAxisDelta,
+        (originOffset.dy +
+            mainAxisUnit.dy * mainAxisDelta +
+            crossAxisUnit.dy * crossAxisDelta),
+      );
+
+      Offset springOffset = Offset.zero;
+      if (_state.pointerPosition != null) {
+        final index = indexOf(child);
+        final difference = _state.pointerPosition!.dy - childOffset.dy;
+        var yTranslate = (difference / 200) * _state.springLength;
+
+        if (difference < 0) {
+          // print(yTranslate);
+          yTranslate = -yTranslate;
+        }
+
+        childOffset = childOffset.translate(0, yTranslate);
+        // print(difference / constraints.viewportMainAxisExtent);
+      }
+
+      if (addExtent) childOffset += mainAxisUnit * paintExtentOf(child);
+
+      // If the child's visible interval (mainAxisDelta, mainAxisDelta + paintExtentOf(child))
+      // does not intersect the paint extent interval (0, constraints.remainingPaintExtent), it's hidden.
+      if (mainAxisDelta < constraints.remainingPaintExtent &&
+          mainAxisDelta + paintExtentOf(child) > 0)
+        context.paintChild(child, childOffset);
+
+      child = childAfter(child);
+    }
   }
 
   @override
@@ -92,7 +125,6 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     assert(remainingExtent >= 0.0);
     final double targetEndScrollOffset = scrollOffset + remainingExtent;
     final BoxConstraints childConstraints = constraints.asBoxConstraints();
-
     int leadingGarbage = 0;
     int trailingGarbage = 0;
     bool reachedEnd = false;
@@ -128,9 +160,9 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     // These variables track the range of children that we have laid out. Within
     // this range, the children have consecutive indices. Outside this range,
     // it's possible for a child to get removed without notice.
-    RenderBox leadingChildWithLayout, trailingChildWithLayout;
+    RenderBox? leadingChildWithLayout, trailingChildWithLayout;
 
-    RenderBox earliestUsefulChild = firstChild;
+    RenderBox? earliestUsefulChild = firstChild;
 
     // A firstChild with null layout offset is likely a result of children
     // reordering.
@@ -138,36 +170,45 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     // We rely on firstChild to have accurate layout offset. In the case of null
     // layout offset, we have to find the first child that has valid layout
     // offset.
-    if (childScrollOffset(firstChild) == null) {
+    if (childScrollOffset(firstChild!) == null) {
       int leadingChildrenWithoutLayoutOffset = 0;
-      while (childScrollOffset(earliestUsefulChild) == null) {
-        earliestUsefulChild = childAfter(firstChild);
+      while (earliestUsefulChild != null &&
+          childScrollOffset(earliestUsefulChild) == null) {
+        earliestUsefulChild = childAfter(earliestUsefulChild);
         leadingChildrenWithoutLayoutOffset += 1;
       }
       // We should be able to destroy children with null layout offset safely,
       // because they are likely outside of viewport
       collectGarbage(leadingChildrenWithoutLayoutOffset, 0);
-      assert(firstChild != null);
+      // If can not find a valid layout offset, start from the initial child.
+      if (firstChild == null) {
+        if (!addInitialChild()) {
+          // There are no children.
+          geometry = SliverGeometry.zero;
+          childManager.didFinishLayout();
+          return;
+        }
+      }
     }
 
     // Find the last child that is at or before the scrollOffset.
     earliestUsefulChild = firstChild;
-    for (double earliestScrollOffset = childScrollOffset(earliestUsefulChild);
+    for (double earliestScrollOffset = childScrollOffset(earliestUsefulChild!)!;
         earliestScrollOffset > scrollOffset;
-        earliestScrollOffset = childScrollOffset(earliestUsefulChild)) {
+        earliestScrollOffset = childScrollOffset(earliestUsefulChild)!) {
       // We have to add children before the earliestUsefulChild.
       earliestUsefulChild =
           insertAndLayoutLeadingChild(childConstraints, parentUsesSize: true);
       if (earliestUsefulChild == null) {
         final SliverMultiBoxAdaptorParentData childParentData =
-            firstChild.parentData as SliverMultiBoxAdaptorParentData;
+            firstChild!.parentData! as SliverMultiBoxAdaptorParentData;
         childParentData.layoutOffset = 0.0;
 
         if (scrollOffset == 0.0) {
           // insertAndLayoutLeadingChild only lays out the children before
           // firstChild. In this case, nothing has been laid out. We have
           // to lay out firstChild manually.
-          firstChild.layout(childConstraints, parentUsesSize: true);
+          firstChild!.layout(childConstraints, parentUsesSize: true);
           earliestUsefulChild = firstChild;
           leadingChildWithLayout = earliestUsefulChild;
           trailingChildWithLayout ??= earliestUsefulChild;
@@ -184,7 +225,7 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
       }
 
       final double firstChildScrollOffset =
-          earliestScrollOffset - paintExtentOf(firstChild);
+          earliestScrollOffset - paintExtentOf(firstChild!);
       // firstChildScrollOffset may contain double precision error
       if (firstChildScrollOffset < -precisionErrorTolerance) {
         // Let's assume there is no child before the first child. We will
@@ -193,28 +234,28 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
           scrollOffsetCorrection: -firstChildScrollOffset,
         );
         final SliverMultiBoxAdaptorParentData childParentData =
-            firstChild.parentData as SliverMultiBoxAdaptorParentData;
+            firstChild!.parentData! as SliverMultiBoxAdaptorParentData;
         childParentData.layoutOffset = 0.0;
         return;
       }
 
       final SliverMultiBoxAdaptorParentData childParentData =
-          earliestUsefulChild.parentData as SliverMultiBoxAdaptorParentData;
+          earliestUsefulChild.parentData! as SliverMultiBoxAdaptorParentData;
       childParentData.layoutOffset = firstChildScrollOffset;
       assert(earliestUsefulChild == firstChild);
       leadingChildWithLayout = earliestUsefulChild;
       trailingChildWithLayout ??= earliestUsefulChild;
     }
 
-    assert(childScrollOffset(firstChild) > -precisionErrorTolerance);
+    assert(childScrollOffset(firstChild!)! > -precisionErrorTolerance);
 
     // If the scroll offset is at zero, we should make sure we are
     // actually at the beginning of the list.
     if (scrollOffset < precisionErrorTolerance) {
       // We iterate from the firstChild in case the leading child has a 0 paint
       // extent.
-      while (indexOf(firstChild) > 0) {
-        final double earliestScrollOffset = childScrollOffset(firstChild);
+      while (indexOf(firstChild!) > 0) {
+        final double earliestScrollOffset = childScrollOffset(firstChild!)!;
         // We correct one child at a time. If there are more children before
         // the earliestUsefulChild, we will correct it once the scroll offset
         // reaches zero again.
@@ -222,9 +263,9 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
             insertAndLayoutLeadingChild(childConstraints, parentUsesSize: true);
         assert(earliestUsefulChild != null);
         final double firstChildScrollOffset =
-            earliestScrollOffset - paintExtentOf(firstChild);
+            earliestScrollOffset - paintExtentOf(firstChild!);
         final SliverMultiBoxAdaptorParentData childParentData =
-            firstChild.parentData as SliverMultiBoxAdaptorParentData;
+            firstChild!.parentData! as SliverMultiBoxAdaptorParentData;
         childParentData.layoutOffset = 0.0;
         // We only need to correct if the leading child actually has a
         // paint extent.
@@ -245,11 +286,11 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     // scroll offset.
 
     assert(earliestUsefulChild == firstChild);
-    assert(childScrollOffset(earliestUsefulChild) <= scrollOffset);
+    assert(childScrollOffset(earliestUsefulChild!)! <= scrollOffset);
 
     // Make sure we've laid out at least one child.
     if (leadingChildWithLayout == null) {
-      earliestUsefulChild.layout(childConstraints, parentUsesSize: true);
+      earliestUsefulChild!.layout(childConstraints, parentUsesSize: true);
       leadingChildWithLayout = earliestUsefulChild;
       trailingChildWithLayout = earliestUsefulChild;
     }
@@ -260,19 +301,19 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     // that some children beyond that one have also been laid out.
 
     bool inLayoutRange = true;
-    RenderBox child = earliestUsefulChild;
-    int index = indexOf(child);
-    double endScrollOffset = childScrollOffset(child) + paintExtentOf(child);
+    RenderBox? child = earliestUsefulChild;
+    int index = indexOf(child!);
+    double endScrollOffset = childScrollOffset(child)! + paintExtentOf(child);
     bool advance() {
       // returns true if we advanced, false if we have no more children
       // This function is used in two different places below, to avoid code duplication.
       assert(child != null);
       if (child == trailingChildWithLayout) inLayoutRange = false;
-      child = childAfter(child);
+      child = childAfter(child!);
       if (child == null) inLayoutRange = false;
       index += 1;
       if (!inLayoutRange) {
-        if (child == null || indexOf(child) != index) {
+        if (child == null || indexOf(child!) != index) {
           // We are missing a child. Insert it (and lay it out) if possible.
           child = insertAndLayoutChild(
             childConstraints,
@@ -285,16 +326,16 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
           }
         } else {
           // Lay out the child.
-          child.layout(childConstraints, parentUsesSize: true);
+          child!.layout(childConstraints, parentUsesSize: true);
         }
         trailingChildWithLayout = child;
       }
       assert(child != null);
       final SliverMultiBoxAdaptorParentData childParentData =
-          child.parentData as SliverMultiBoxAdaptorParentData;
+          child!.parentData! as SliverMultiBoxAdaptorParentData;
       childParentData.layoutOffset = endScrollOffset;
       assert(childParentData.index == index);
-      endScrollOffset = childScrollOffset(child) + paintExtentOf(child);
+      endScrollOffset = childScrollOffset(child!)! + paintExtentOf(child!);
       return true;
     }
 
@@ -308,10 +349,9 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
         collectGarbage(leadingGarbage - 1, 0);
         assert(firstChild == lastChild);
         final double extent =
-            childScrollOffset(lastChild) + paintExtentOf(lastChild);
+            childScrollOffset(lastChild!)! + paintExtentOf(lastChild!);
         geometry = SliverGeometry(
           scrollExtent: extent,
-          paintExtent: 0.0,
           maxPaintExtent: extent,
         );
         return;
@@ -328,10 +368,10 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
 
     // Finally count up all the remaining children and label them as garbage.
     if (child != null) {
-      child = childAfter(child);
+      child = childAfter(child!);
       while (child != null) {
         trailingGarbage += 1;
-        child = childAfter(child);
+        child = childAfter(child!);
       }
     }
 
@@ -341,28 +381,28 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     collectGarbage(leadingGarbage, trailingGarbage);
 
     assert(debugAssertChildListIsNonEmptyAndContiguous());
-    double estimatedMaxScrollOffset;
+    final double estimatedMaxScrollOffset;
     if (reachedEnd) {
       estimatedMaxScrollOffset = endScrollOffset;
     } else {
       estimatedMaxScrollOffset = childManager.estimateMaxScrollOffset(
         constraints,
-        firstIndex: indexOf(firstChild),
-        lastIndex: indexOf(lastChild),
-        leadingScrollOffset: childScrollOffset(firstChild),
+        firstIndex: indexOf(firstChild!),
+        lastIndex: indexOf(lastChild!),
+        leadingScrollOffset: childScrollOffset(firstChild!),
         trailingScrollOffset: endScrollOffset,
       );
       assert(estimatedMaxScrollOffset >=
-          endScrollOffset - childScrollOffset(firstChild));
+          endScrollOffset - childScrollOffset(firstChild!)!);
     }
     final double paintExtent = calculatePaintOffset(
       constraints,
-      from: childScrollOffset(firstChild),
+      from: childScrollOffset(firstChild!)!,
       to: endScrollOffset,
     );
     final double cacheExtent = calculateCacheOffset(
       constraints,
-      from: childScrollOffset(firstChild),
+      from: childScrollOffset(firstChild!)!,
       to: endScrollOffset,
     );
     final double targetEndScrollOffsetForPaint =
@@ -382,156 +422,5 @@ class RenderSliverBouncyList extends RenderSliverMultiBoxAdaptor {
     if (estimatedMaxScrollOffset == endScrollOffset)
       childManager.setDidUnderflow(true);
     childManager.didFinishLayout();
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    if (firstChild == null) return;
-    // _calculateDelta();
-    // offset is to the top-left corner, regardless of our axis direction.
-    // originOffset gives us the delta from the real origin to the origin in the axis direction.
-    Offset mainAxisUnit, crossAxisUnit, originOffset;
-    bool addExtent;
-    switch (applyGrowthDirectionToAxisDirection(
-        constraints.axisDirection, constraints.growthDirection)) {
-      case AxisDirection.up:
-        mainAxisUnit = const Offset(0.0, -1.0);
-        crossAxisUnit = const Offset(1.0, 0.0);
-        originOffset = offset + Offset(0.0, geometry.paintExtent);
-        addExtent = true;
-        break;
-      case AxisDirection.right:
-        mainAxisUnit = const Offset(1.0, 0.0);
-        crossAxisUnit = const Offset(0.0, 1.0);
-        originOffset = offset;
-        addExtent = false;
-        break;
-      case AxisDirection.down:
-        mainAxisUnit = const Offset(0.0, 1.0);
-        crossAxisUnit = const Offset(1.0, 0.0);
-        originOffset = offset;
-        addExtent = false;
-        break;
-      case AxisDirection.left:
-        mainAxisUnit = const Offset(-1.0, 0.0);
-        crossAxisUnit = const Offset(0.0, 1.0);
-        originOffset = offset + Offset(geometry.paintExtent, 0.0);
-        addExtent = true;
-        break;
-    }
-    assert(mainAxisUnit != null);
-    assert(addExtent != null);
-
-    final isVertical = constraints.axisDirection == AxisDirection.up ||
-        constraints.axisDirection == AxisDirection.down;
-
-    RenderBox child = firstChild;
-    while (child != null) {
-      final double mainAxisDelta = childMainAxisPosition(child);
-      final double crossAxisDelta = childCrossAxisPosition(child);
-      Offset childOffset = Offset(
-        originOffset.dx +
-            mainAxisUnit.dx * mainAxisDelta +
-            crossAxisUnit.dx * crossAxisDelta,
-        originOffset.dy +
-            mainAxisUnit.dy * mainAxisDelta +
-            crossAxisUnit.dy * crossAxisDelta,
-      );
-
-      if (addExtent) childOffset += mainAxisUnit * paintExtentOf(child);
-
-      if (springMap[child] != null) {
-        final spring = springMap[child];
-        childOffset +=
-            isVertical ? Offset(0, spring.current) : Offset(spring.current, 0);
-      }
-
-      // If the child's visible interval (mainAxisDelta, mainAxisDelta + paintExtentOf(child))
-      // does not intersect the paint extent interval (0, constraints.remainingPaintExtent), it's hidden.
-      // if (mainAxisDelta < constraints.remainingPaintExtent &&
-      //     mainAxisDelta + paintExtentOf(child) > 0)
-      //   context.paintChild(child, childOffset);
-      context.paintChild(child, childOffset);
-      child = childAfter(child);
-    }
-    _calculateDelta();
-    lastScrollOffset = constraints.scrollOffset;
-  }
-
-  void _calculateDelta() {
-    if (lastScrollOffset == null || _globalPosition == null) {
-      return;
-    }
-
-    final isVertical = constraints.axisDirection == AxisDirection.up ||
-        constraints.axisDirection == AxisDirection.down;
-
-    RenderBox child = firstChild;
-    while (child != null) {
-      var resistance = 0.0;
-
-      double delta = constraints.scrollOffset - lastScrollOffset;
-
-      if (lastScrollOffset != null) {
-        final offsetDiff =
-            (_globalPosition - child.localToGlobal(Offset(0, 0)));
-        resistance = (isVertical ? offsetDiff.dy : offsetDiff.dx) / 100;
-      }
-
-      final calculatedDelta = (delta > 0
-              ? max(delta, delta * resistance.abs())
-              : min(delta, delta * resistance.abs()))
-          .floorToDouble();
-
-      final spring = springMap[child];
-      if (spring != null) {
-        final reversed = axisDirectionIsReversed(constraints.axisDirection);
-        springMap[child]
-            .setTarget(reversed ? -calculatedDelta : calculatedDelta);
-      }
-
-      child = childAfter(child);
-    }
-  }
-}
-
-class Spring {
-  final Function handler;
-  final SpringDescription springDescription;
-  double current = 0.0;
-
-  SpringSimulation _simulation;
-  double _dt = 0;
-  Timer _timer;
-
-  Spring(
-    this.handler,
-    this.springDescription,
-  ) {
-    _timer = Timer.periodic(
-      Duration(milliseconds: 1),
-      (_) {
-        if (_simulation != null) {
-          current = _simulation.x(_dt / 100);
-        }
-        _dt++;
-        handler();
-      },
-    );
-  }
-
-  void setTarget(double target) {
-    _simulation = SpringSimulation(
-      springDescription,
-      current,
-      target,
-      0.01,
-    );
-
-    _dt = 0;
-  }
-
-  void dispose() {
-    _timer.cancel();
   }
 }
