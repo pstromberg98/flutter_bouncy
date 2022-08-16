@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/physics.dart';
 import 'package:flutter/scheduler.dart';
 
 class SpringConfiguration {
@@ -11,7 +10,7 @@ class SpringConfiguration {
     required this.mass,
     required this.k,
     double? damping,
-  }) : damping = damping ?? 0.3;
+  }) : damping = damping ?? 1;
 }
 
 class SpringState {
@@ -68,7 +67,10 @@ class SpringSimulator {
         ) {
     springSimulatorController?.addListener(
       (double velocity) {
-        _state.velocity = velocity;
+        // TODO: Not sure if this is the best way to do this
+        if (velocity.abs() > _state.velocity.abs()) {
+          _state.velocity = velocity;
+        }
       },
     );
     _ticker = vsync.createTicker((elapsed) {
@@ -81,7 +83,8 @@ class SpringSimulator {
       final deltaPosition = (_state.velocity + acceleration);
 
       _state.length += deltaPosition;
-      _state.velocity += acceleration * configuration.damping;
+      _state.velocity +=
+          acceleration + -(configuration.damping * _state.velocity);
 
       onSpringStateChange(_state);
     });

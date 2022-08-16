@@ -39,8 +39,8 @@ class BouncyListState extends State<BouncyList>
       initialLength: length,
       springSimulatorController: controller,
       configuration: SpringConfiguration(
-        mass: 10,
-        k: 3,
+        mass: 20,
+        k: 1,
       ),
       onSpringStateChange: (state) {
         if (widget.onChange != null) {
@@ -77,7 +77,7 @@ class BouncyListState extends State<BouncyList>
         children: [
           NotificationListener<ScrollNotification>(
             onNotification: (notification) {
-              final maxSpeed = 4.0;
+              final maxSpeed = 20.0;
               final velocity = max(
                 min(notification.metrics.pixels - lastPixels, maxSpeed),
                 -maxSpeed,

@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 
@@ -87,16 +85,9 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
 
       Offset springOffset = Offset.zero;
       if (_state.pointerPosition != null) {
-        final index = indexOf(child);
-        final difference = _state.pointerPosition!.dy - childOffset.dy;
-        var yTranslate = (difference / 200) * _state.springLength;
+        _springOffset(childOffset.dy);
 
-        if (difference < 0) {
-          // print(yTranslate);
-          yTranslate = -yTranslate;
-        }
-
-        childOffset = childOffset.translate(0, yTranslate);
+        childOffset = childOffset.translate(0, _springOffset(childOffset.dy));
         // print(difference / constraints.viewportMainAxisExtent);
       }
 
@@ -104,8 +95,9 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
 
       // If the child's visible interval (mainAxisDelta, mainAxisDelta + paintExtentOf(child))
       // does not intersect the paint extent interval (0, constraints.remainingPaintExtent), it's hidden.
-      if (mainAxisDelta < constraints.remainingPaintExtent &&
-          mainAxisDelta + paintExtentOf(child) > 0)
+      final springExtent = _springExtent();
+      if (mainAxisDelta < (constraints.remainingPaintExtent + springExtent) &&
+          mainAxisDelta + paintExtentOf(child) > -springExtent)
         context.paintChild(child, childOffset);
 
       child = childAfter(child);
@@ -401,10 +393,12 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
       to: endScrollOffset,
     );
     final double cacheExtent = calculateCacheOffset(
-      constraints,
-      from: childScrollOffset(firstChild!)!,
-      to: endScrollOffset,
-    );
+          constraints,
+          from: childScrollOffset(firstChild!)!,
+          to: endScrollOffset,
+        ) +
+        _springExtent() / 2;
+
     final double targetEndScrollOffsetForPaint =
         constraints.scrollOffset + constraints.remainingPaintExtent;
     geometry = SliverGeometry(
@@ -422,5 +416,32 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     if (estimatedMaxScrollOffset == endScrollOffset)
       childManager.setDidUnderflow(true);
     childManager.didFinishLayout();
+  }
+
+  double _springOffset(double layoutOffset) {
+    if (_state.pointerPosition == null) {
+      return 0;
+    }
+
+    final difference = _state.pointerPosition!.dy - layoutOffset;
+    var yTranslate = (difference / 700) * _state.springLength;
+
+    if (difference < 0) {
+      yTranslate = -yTranslate;
+    }
+    return yTranslate;
+  }
+
+  double _springExtent() {
+    double sum = 0.0;
+    RenderBox? child = childAfter(firstChild!);
+    while (child != null) {
+      final offset = childScrollOffset(child);
+      if (offset != null) {
+        sum += _springOffset(offset).abs();
+      }
+      child = childAfter(child);
+    }
+    return sum;
   }
 }
