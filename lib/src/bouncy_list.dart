@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_bouncy/flutter_bouncy.dart';
 import 'package:flutter_bouncy/src/bouncy_render_sliver_list.dart';
 
@@ -46,6 +45,7 @@ class BouncyListState extends State<BouncyList>
         if (widget.onChange != null) {
           widget.onChange!(state);
         }
+
         setState(() {
           _sliverState = BouncyRenderSliverState(
             springLength: state.length,
