@@ -1,5 +1,5 @@
 library flutter_bouncy;
 
 export 'src/spring_simulator.dart';
-export 'src/bouncy_list.dart';
-export 'src/bouncy_debug.dart';
+export 'src/widgets/bouncy_list.dart';
+export 'src/widgets/bouncy_debug.dart';

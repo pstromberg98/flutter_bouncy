@@ -25,31 +25,12 @@ class SpringState {
   });
 }
 
-class SpringSimulatorController implements Listenable {
-  final listeners = <Function>[];
-
-  void setVelocity(double velocity) {
-    listeners.forEach((element) => element(velocity));
-  }
-
-  @override
-  void addListener(Function listener) {
-    listeners.add(listener);
-  }
-
-  @override
-  void removeListener(Function listener) {
-    listeners.remove(listener);
-  }
-}
-
 typedef OnSpringStateChange = void Function(SpringState);
 
 class SpringSimulator {
   final TickerProvider vsync;
   final SpringConfiguration configuration;
   final OnSpringStateChange onSpringStateChange;
-  final SpringSimulatorController? springSimulatorController;
 
   late final SpringState _state;
   late final Ticker _ticker;
@@ -58,21 +39,12 @@ class SpringSimulator {
     required this.vsync,
     required this.configuration,
     required this.onSpringStateChange,
-    this.springSimulatorController,
     double? initialLength,
   }) : _state = SpringState(
           length: initialLength ?? 0,
           force: 0,
           velocity: 0,
         ) {
-    springSimulatorController?.addListener(
-      (double velocity) {
-        // TODO: Not sure if this is the best way to do this
-        if (velocity.abs() > _state.velocity.abs()) {
-          _state.velocity = velocity;
-        }
-      },
-    );
     _ticker = vsync.createTicker((elapsed) {
       final displacement = _state.length;
       final force = (-configuration.k) * displacement;
@@ -89,6 +61,13 @@ class SpringSimulator {
       onSpringStateChange(_state);
     });
     _ticker.start();
+  }
+
+  void setVelocity(double velocity) {
+    // TODO: Not sure if this is the best way to do this
+    if (velocity.abs() > _state.velocity.abs()) {
+      _state.velocity = velocity;
+    }
   }
 
   void dispose() {

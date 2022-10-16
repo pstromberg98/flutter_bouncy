@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bouncy/flutter_bouncy.dart';
-import 'package:flutter_bouncy/src/bouncy_render_sliver_list.dart';
+import 'package:flutter_bouncy/src/rendering/bouncy_render_sliver_list.dart';
 
 class BouncyList extends StatefulWidget {
   BouncyList({
@@ -26,17 +26,14 @@ class BouncyListState extends State<BouncyList>
   );
 
   late final SpringSimulator simulation;
-  late final SpringSimulatorController controller;
   double length = 20;
   double lastPixels = 0;
 
   @override
   void initState() {
-    controller = SpringSimulatorController();
     simulation = SpringSimulator(
       vsync: this,
       initialLength: length,
-      springSimulatorController: controller,
       configuration: SpringConfiguration(
         mass: 20,
         k: 1,
@@ -56,7 +53,7 @@ class BouncyListState extends State<BouncyList>
     );
 
     Future.delayed(Duration(milliseconds: 2000)).then((value) {
-      controller.setVelocity(20);
+      simulation.setVelocity(20);
       // print('Firing');
     });
     super.initState();
@@ -82,7 +79,7 @@ class BouncyListState extends State<BouncyList>
                 min(notification.metrics.pixels - lastPixels, maxSpeed),
                 -maxSpeed,
               );
-              controller.setVelocity(velocity);
+              simulation.setVelocity(velocity);
               lastPixels = notification.metrics.pixels;
               return true;
             },

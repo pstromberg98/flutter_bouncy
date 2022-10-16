@@ -26,150 +26,16 @@ class SpringTest extends StatefulWidget {
   State<StatefulWidget> createState() => SpringTestState();
 }
 
-class SpringTestState extends State<SpringTest>
-    with SingleTickerProviderStateMixin {
-  late final SpringSimulator simulation;
-  late final SpringSimulatorController controller;
-
-  double length = 20;
-  SpringState springState = SpringState(
-    length: 20,
-    force: 20,
-    velocity: 0,
-  );
-
-  @override
-  void initState() {
-    controller = SpringSimulatorController();
-    simulation = SpringSimulator(
-      vsync: this,
-      initialLength: length,
-      springSimulatorController: controller,
-      configuration: SpringConfiguration(
-        mass: 1,
-        k: 10,
-      ),
-      onSpringStateChange: (state) {
-        setState(() {
-          length = state.length;
-        });
-      },
-    );
-
-    Future.delayed(Duration(milliseconds: 2000)).then((value) {
-      controller.setVelocity(20);
-    });
-    super.initState();
-  }
-
+class SpringTestState extends State<SpringTest> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onPanUpdate: (details) {
-            controller.setVelocity(max(min(details.delta.dy, 5), -5));
-          },
-          child: BouncyList(
-            onChange: (state) {
-              setState(() {
-                springState = state;
-              });
-            },
-            delegate: SliverChildListDelegate(
-              [
-                // _buildBar(5),
-                // _buildBar(3),
-                // _buildBar(3),
-                // _buildBar(3),
-                // _buildBar(4),
-                // _buildBar(5),
-                // _buildBar(1),
-                // _buildBar(4),
-                // _buildBar(6),
-                // _buildBar(3),
-                // _buildBar(2.1),
-                // _buildBar(6),
-                // _buildBar(3),
-                // _buildBar(3),
-                // _buildBar(4),
-                // _buildBar(3),
-                // _buildBar(3),
-                // _buildBar(1.5),
-                // _buildBar(3),
-                // _buildBar(5),
-                // _buildBar(6),
-                // _buildBar(3),
-                // _buildBar(4),
-                // _buildBar(6),
-                // _buildBar(2),
-                // _buildBar(3),
-                // _buildBar(1.5),
-                // _buildBar(3),
-                // _buildBar(5),
-                // _buildBar(4),
-                // _buildBar(3),
-                // _buildBar(4),
-                // _buildBar(6),
-                // _buildBar(2),
-                // _buildBar(3),
-                // _buildBar(3),
-                // _buildBar(3),
-                // _buildBar(4),
-                // _buildBar(5),
-                // _buildBar(1),
-                // _buildBar(4),
-                // _buildBar(6),
-                // _buildBar(3),
-                // _buildBar(3),
-                // _buildBar(3),
-                // _buildBar(4),
-                // _buildBar(5),
-                // _buildBar(1),
-                // _buildBar(4),
-                // _buildBar(6),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                BouncyDebug(
-                  springConfig: SpringConfiguration(
-                    k: 1,
-                    mass: 1,
-                    damping: 0.1,
-                  ),
-                  springState: springState,
-                  child: _buildChatMessage(false),
-                ),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                _buildChatMessage(false),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                _buildChatMessage(false),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-                _buildChatMessage(false),
-                _buildChatMessage(true),
-                _buildChatMessage(true),
-              ],
+        child: BouncyList(
+          delegate: SliverChildBuilderDelegate(
+            (context, index) => _buildChatMessage(
+              index % 3 == 0,
+              height: index % 3 == 0 ? 25 : 50,
             ),
           ),
         ),
@@ -177,7 +43,10 @@ class SpringTestState extends State<SpringTest>
     );
   }
 
-  Widget _buildChatMessage(bool isSender) {
+  Widget _buildChatMessage(
+    bool isSender, {
+    double? height = 25,
+  }) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 0),
       child: Align(
@@ -185,7 +54,7 @@ class SpringTestState extends State<SpringTest>
         child: FractionallySizedBox(
           widthFactor: 0.8,
           child: Container(
-            height: 25,
+            height: height,
             decoration: BoxDecoration(
               color: isSender
                   ? Colors.purple.withOpacity(0.8)
