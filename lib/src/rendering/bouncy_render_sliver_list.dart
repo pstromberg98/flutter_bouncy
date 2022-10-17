@@ -1,12 +1,14 @@
 import 'package:flutter/rendering.dart';
+import 'package:flutter_bouncy/flutter_bouncy.dart';
+import 'package:flutter_bouncy/src/widgets/widgets.dart';
 
 class BouncyRenderSliverState {
   final double springLength;
-  final Offset? pointerPosition;
+  final double? pointerOffset;
 
   BouncyRenderSliverState({
     required this.springLength,
-    required this.pointerPosition,
+    required this.pointerOffset,
   });
 }
 
@@ -29,20 +31,48 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   ///
   /// The [childManager] argument must not be null.
   BouncyRenderSliverList({
-    required RenderSliverBoxChildManager childManager,
-  }) : super(childManager: childManager);
+    required super.childManager,
+  });
+
+  SpringSimulator? _simulator;
+  PointerPositionNotifier? _pointerNotifer;
 
   BouncyRenderSliverState _state = BouncyRenderSliverState(
     springLength: 0,
-    pointerPosition: null,
+    pointerOffset: null,
   );
 
-  void setState(BouncyRenderSliverState state) {
-    _state = BouncyRenderSliverState(
-      springLength: state.springLength,
-      pointerPosition: state.pointerPosition,
-    );
-    markNeedsLayout();
+  SpringSimulator? get currentSpringSimulator => _simulator;
+  PointerPositionNotifier? get currentPointerNotifier => _pointerNotifer;
+
+  void attachSpringSimulator(SpringSimulator simulator) {
+    if (_simulator != null) {
+      _simulator!.dispose();
+    }
+    _simulator = simulator;
+    _simulator!.addListener((state) {
+      _state = BouncyRenderSliverState(
+        springLength: state.length,
+        pointerOffset: _state.pointerOffset,
+      );
+      markNeedsLayout();
+    });
+  }
+
+  void attachPointerNotifer(PointerPositionNotifier pointerNotifier) {
+    if (_pointerNotifer != null) {
+      _pointerNotifer!.dispose();
+    }
+    _pointerNotifer = pointerNotifier;
+    _pointerNotifer!.addListener(() {
+      final scrollOffset = constraints.scrollOffset + _pointerNotifer!.value.dy;
+
+      _state = BouncyRenderSliverState(
+        springLength: _state.springLength,
+        pointerOffset: scrollOffset,
+      );
+      markNeedsLayout();
+    });
   }
 
   @override
@@ -154,8 +184,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
         return;
       }
     } else {
-      // collectGarbage(0, childCount - 1);
-      // Adjust layout
+      // Reset existing children's spring offset
       RenderBox? child = firstChild!;
       while (child != null) {
         final parentData = (child.parentData as SliverBouncyParentData);
@@ -257,13 +286,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
 
     collectGarbage(leadingGarbage, trailingGarbage);
     assert(debugAssertChildListIsNonEmptyAndContiguous());
-    if (leadingGarbage > 0) {
-      print('Leading Garbage: ' + leadingGarbage.toString());
-    }
 
-    if (trailingGarbage > 0) {
-      print('Trailing Garbage: ' + trailingGarbage.toString());
-    }
     final double estimatedMaxScrollOffset;
     if (reachedEnd) {
       estimatedMaxScrollOffset = endOffset;
@@ -322,13 +345,13 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   }
 
   double _springOffset(double layoutOffset) {
-    if (_state.pointerPosition == null) {
+    if (_state.pointerOffset == null) {
       return 0;
     }
 
-    final difference =
-        (constraints.scrollOffset + _state.pointerPosition!.dy) - layoutOffset;
-    var yTranslate = (difference / 700) * _state.springLength;
+    final difference = _state.pointerOffset! - layoutOffset;
+    var yTranslate =
+        (difference / constraints.viewportMainAxisExtent) * _state.springLength;
 
     if (difference < 0) {
       yTranslate = -yTranslate;

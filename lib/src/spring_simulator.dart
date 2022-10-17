@@ -1,4 +1,3 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 
 class SpringConfiguration {
@@ -25,12 +24,14 @@ class SpringState {
   });
 }
 
-typedef OnSpringStateChange = void Function(SpringState);
+typedef SpringStateChangeCallback = void Function(SpringState state);
+typedef RemovalFunction = void Function();
 
 class SpringSimulator {
   final TickerProvider vsync;
   final SpringConfiguration configuration;
-  final OnSpringStateChange onSpringStateChange;
+
+  final List<SpringStateChangeCallback> _listeners = [];
 
   late final SpringState _state;
   late final Ticker _ticker;
@@ -38,7 +39,6 @@ class SpringSimulator {
   SpringSimulator({
     required this.vsync,
     required this.configuration,
-    required this.onSpringStateChange,
     double? initialLength,
   }) : _state = SpringState(
           length: initialLength ?? 0,
@@ -52,13 +52,21 @@ class SpringSimulator {
       final acceleration = force / configuration.mass;
 
       // Not sure if this correct (adding acceleration and velocity)
-      final deltaPosition = (_state.velocity + acceleration);
+      var deltaPosition = (_state.velocity + acceleration);
 
-      _state.length += deltaPosition;
-      _state.velocity +=
-          acceleration + -(configuration.damping * _state.velocity);
+      // if (deltaPosition.abs() < 0.001) {
+      //   deltaPosition = 0.0;
+      // }
 
-      onSpringStateChange(_state);
+      final updatedLength = _state.length + deltaPosition;
+
+      if (updatedLength != _state.length) {
+        _state.length = updatedLength;
+        _state.velocity +=
+            acceleration + -(configuration.damping * _state.velocity);
+
+        _listeners.forEach((listener) => listener(_state));
+      }
     });
     _ticker.start();
   }
@@ -72,5 +80,11 @@ class SpringSimulator {
 
   void dispose() {
     _ticker.dispose();
+    _listeners.clear();
+  }
+
+  RemovalFunction addListener(SpringStateChangeCallback callback) {
+    _listeners.add(callback);
+    return () => _listeners.remove(callback);
   }
 }

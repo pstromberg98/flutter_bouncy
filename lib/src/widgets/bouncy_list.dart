@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_bouncy/flutter_bouncy.dart';
 import 'package:flutter_bouncy/src/rendering/bouncy_render_sliver_list.dart';
+import 'package:flutter_bouncy/src/widgets/widgets.dart';
 
 class BouncyList extends StatefulWidget {
   BouncyList({
@@ -20,40 +21,23 @@ class BouncyList extends StatefulWidget {
 
 class BouncyListState extends State<BouncyList>
     with SingleTickerProviderStateMixin {
-  BouncyRenderSliverState _sliverState = BouncyRenderSliverState(
-    springLength: 0,
-    pointerPosition: null,
-  );
-
-  late final SpringSimulator simulation;
+  late final SpringSimulator simulator;
   double length = 20;
   double lastPixels = 0;
 
   @override
   void initState() {
-    simulation = SpringSimulator(
+    simulator = SpringSimulator(
       vsync: this,
       initialLength: length,
       configuration: SpringConfiguration(
         mass: 20,
         k: 1,
       ),
-      onSpringStateChange: (state) {
-        if (widget.onChange != null) {
-          widget.onChange!(state);
-        }
-
-        setState(() {
-          _sliverState = BouncyRenderSliverState(
-            springLength: state.length,
-            pointerPosition: _sliverState.pointerPosition,
-          );
-        });
-      },
     );
 
     Future.delayed(Duration(milliseconds: 2000)).then((value) {
-      simulation.setVelocity(20);
+      simulator.setVelocity(20);
       // print('Firing');
     });
     super.initState();
@@ -61,51 +45,42 @@ class BouncyListState extends State<BouncyList>
 
   @override
   Widget build(BuildContext context) {
-    return Listener(
-      onPointerMove: (event) {
-        setState(() {
-          _sliverState = BouncyRenderSliverState(
-            springLength: _sliverState.springLength,
-            pointerPosition: event.localPosition,
-          );
-        });
-      },
-      child: Stack(
-        children: [
-          NotificationListener<ScrollNotification>(
-            onNotification: (notification) {
-              final maxSpeed = 20.0;
-              final velocity = max(
-                min(notification.metrics.pixels - lastPixels, maxSpeed),
-                -maxSpeed,
-              );
-              simulation.setVelocity(velocity);
-              lastPixels = notification.metrics.pixels;
-              return true;
-            },
-            child: CustomScrollView(
-              slivers: [
-                _BouncySliverList(
-                  delegate: widget.delegate,
-                  state: _sliverState,
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            left: (_sliverState.pointerPosition?.dx ?? 0) - 10,
-            top: (_sliverState.pointerPosition?.dy ?? 0) - 10,
-            child: Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                color: Colors.red,
-                borderRadius: BorderRadius.circular(20),
+    return Stack(
+      children: [
+        NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            final maxSpeed = 20.0;
+            final velocity = max(
+              min(notification.metrics.pixels - lastPixels, maxSpeed),
+              -maxSpeed,
+            );
+            simulator.setVelocity(velocity);
+            lastPixels = notification.metrics.pixels;
+            return true;
+          },
+          child: BouncyScrollView(
+            sliversBuilder: (pointerNotifier) => [
+              _BouncySliverList(
+                pointerNotifier: pointerNotifier,
+                delegate: widget.delegate,
+                simulator: simulator,
               ),
-            ),
-          )
-        ],
-      ),
+            ],
+          ),
+        ),
+        // Positioned(
+        //   left: (_sliverState.pointerPosition?.dx ?? 0) - 10,
+        //   top: (_sliverState.pointerPosition?.dy ?? 0) - 10,
+        //   child: Container(
+        //     width: 20,
+        //     height: 20,
+        //     decoration: BoxDecoration(
+        //       color: Colors.red,
+        //       borderRadius: BorderRadius.circular(20),
+        //     ),
+        //   ),
+        // )
+      ],
     );
   }
 }
@@ -113,13 +88,15 @@ class BouncyListState extends State<BouncyList>
 class _BouncySliverList extends SliverMultiBoxAdaptorWidget {
   /// Creates a sliver that places box children in a linear array.
 
-  final BouncyRenderSliverState state;
-
   const _BouncySliverList({
     Key? key,
     required SliverChildDelegate delegate,
-    required this.state,
+    required this.simulator,
+    required this.pointerNotifier,
   }) : super(key: key, delegate: delegate);
+
+  final SpringSimulator simulator;
+  final PointerPositionNotifier pointerNotifier;
 
   @override
   void updateRenderObject(
@@ -127,20 +104,32 @@ class _BouncySliverList extends SliverMultiBoxAdaptorWidget {
     covariant RenderObject renderObject,
   ) {
     final widget = context.widget as _BouncySliverList;
-    final bouncyRender = renderObject as BouncyRenderSliverList;
-    bouncyRender.setState(widget.state);
+    final sliver = renderObject as BouncyRenderSliverList;
+    if (widget.simulator != sliver.currentSpringSimulator) {
+      sliver.attachSpringSimulator(widget.simulator);
+    }
+
+    if (widget.pointerNotifier != sliver.currentPointerNotifier) {
+      sliver.attachPointerNotifer(widget.pointerNotifier);
+    }
 
     super.updateRenderObject(context, renderObject);
   }
 
   @override
-  SliverMultiBoxAdaptorElement createElement() =>
-      SliverMultiBoxAdaptorElement(this, replaceMovedChildren: true);
+  SliverMultiBoxAdaptorElement createElement() => SliverMultiBoxAdaptorElement(
+        this,
+        replaceMovedChildren: true,
+      );
 
   @override
   BouncyRenderSliverList createRenderObject(BuildContext context) {
     final SliverMultiBoxAdaptorElement element =
         context as SliverMultiBoxAdaptorElement;
-    return BouncyRenderSliverList(childManager: element);
+
+    final sliver = BouncyRenderSliverList(childManager: element);
+    sliver.attachSpringSimulator(simulator);
+    sliver.attachPointerNotifer(pointerNotifier);
+    return sliver;
   }
 }
