@@ -31,13 +31,13 @@ class SpringTestState extends State<SpringTest> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: BouncyList(
-          delegate: SliverChildBuilderDelegate(
-            (context, index) => _buildChatMessage(
+        child: BouncyList.builder(
+          itemBuilder: (context, index) {
+            return _buildChatMessage(
               index % 3 == 0,
               height: index % 3 == 0 ? 25 : 50,
-            ),
-          ),
+            );
+          },
         ),
       ),
     );
@@ -48,7 +48,7 @@ class SpringTestState extends State<SpringTest> {
     double? height = 25,
   }) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 0),
+      padding: EdgeInsets.symmetric(vertical: 6),
       child: Align(
         alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,
         child: FractionallySizedBox(

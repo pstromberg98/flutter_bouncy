@@ -35,7 +35,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   });
 
   SpringSimulator? _simulator;
-  PointerPositionNotifier? _pointerNotifer;
+  PointerPosition? _pointerNotifer;
 
   BouncyRenderSliverState _state = BouncyRenderSliverState(
     springLength: 0,
@@ -43,7 +43,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   );
 
   SpringSimulator? get currentSpringSimulator => _simulator;
-  PointerPositionNotifier? get currentPointerNotifier => _pointerNotifer;
+  PointerPosition? get currentPointerNotifier => _pointerNotifer;
 
   void attachSpringSimulator(SpringSimulator simulator) {
     if (_simulator != null) {
@@ -59,13 +59,16 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     });
   }
 
-  void attachPointerNotifer(PointerPositionNotifier pointerNotifier) {
+  void attachPointerNotifer(PointerPosition pointerNotifier) {
     if (_pointerNotifer != null) {
       _pointerNotifer!.dispose();
     }
     _pointerNotifer = pointerNotifier;
     _pointerNotifer!.addListener(() {
-      final scrollOffset = constraints.scrollOffset + _pointerNotifer!.value.dy;
+      final pointerOffset = constraints.axis == Axis.vertical
+          ? _pointerNotifer!.value.dy
+          : _pointerNotifer!.value.dx;
+      final scrollOffset = constraints.scrollOffset + pointerOffset;
 
       _state = BouncyRenderSliverState(
         springLength: _state.springLength,

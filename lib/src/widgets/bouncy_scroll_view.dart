@@ -1,19 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter_bouncy/flutter_bouncy.dart';
 
-class PointerPositionNotifier extends ValueNotifier<Offset> {
-  PointerPositionNotifier() : super(Offset.zero);
-
-  void updatePosition(Offset updatedOffset) {
-    value = updatedOffset;
-    notifyListeners();
-  }
-}
-
-typedef PointerSliversBuilder = List<Widget> Function(PointerPositionNotifier);
+typedef PointerSliversBuilder = List<Widget> Function(PointerPosition);
 
 class BouncyScrollView extends ScrollView {
   BouncyScrollView({
+    required this.sliversBuilder,
     super.key,
     super.scrollDirection,
     super.reverse,
@@ -25,7 +18,6 @@ class BouncyScrollView extends ScrollView {
     super.center,
     super.anchor,
     super.cacheExtent,
-    required this.sliversBuilder,
     super.semanticChildCount,
     super.dragStartBehavior,
     super.keyboardDismissBehavior,
@@ -35,7 +27,7 @@ class BouncyScrollView extends ScrollView {
 
   final PointerSliversBuilder sliversBuilder;
 
-  final pointerPosition = PointerPositionNotifier();
+  final pointerPosition = PointerPosition();
 
   @override
   Widget build(BuildContext context) {
