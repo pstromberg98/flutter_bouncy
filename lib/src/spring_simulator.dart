@@ -54,9 +54,9 @@ class SpringSimulator {
       // Not sure if this correct (adding acceleration and velocity)
       var deltaPosition = (_state.velocity + acceleration);
 
-      // if (deltaPosition.abs() < 0.001) {
-      //   deltaPosition = 0.0;
-      // }
+      if (deltaPosition.abs() < 0.001) {
+        deltaPosition = 0.0;
+      }
 
       final updatedLength = _state.length + deltaPosition;
 

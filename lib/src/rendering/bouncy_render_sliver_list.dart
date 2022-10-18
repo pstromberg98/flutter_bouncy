@@ -68,7 +68,8 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
       final pointerOffset = constraints.axis == Axis.vertical
           ? _pointerNotifer!.value.dy
           : _pointerNotifer!.value.dx;
-      final scrollOffset = constraints.scrollOffset + pointerOffset;
+
+      final scrollOffset = _pointerOffsetToScrollOffset(pointerOffset);
 
       _state = BouncyRenderSliverState(
         springLength: _state.springLength,
@@ -86,7 +87,9 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     final Offset mainAxisUnit, crossAxisUnit, originOffset;
     final bool addExtent;
     switch (applyGrowthDirectionToAxisDirection(
-        constraints.axisDirection, constraints.growthDirection)) {
+      constraints.axisDirection,
+      constraints.growthDirection,
+    )) {
       case AxisDirection.up:
         mainAxisUnit = const Offset(0.0, -1.0);
         crossAxisUnit = const Offset(1.0, 0.0);
@@ -345,6 +348,24 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     parentData.baseOffset = offset;
     parentData.springOffset = _springOffset(parentData.baseOffset!);
     return parentData;
+  }
+
+  double _pointerOffsetToScrollOffset(double pointerOffset) {
+    final axisDirection = applyGrowthDirectionToAxisDirection(
+      constraints.axisDirection,
+      constraints.growthDirection,
+    );
+
+    final growsForward = [
+      AxisDirection.down,
+      AxisDirection.right,
+    ].contains(axisDirection);
+
+    if (growsForward) {
+      return pointerOffset + constraints.scrollOffset;
+    } else {
+      return (geometry!.paintExtent - pointerOffset) + constraints.scrollOffset;
+    }
   }
 
   double _springOffset(double layoutOffset) {

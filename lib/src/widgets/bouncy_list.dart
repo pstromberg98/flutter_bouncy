@@ -8,6 +8,7 @@ class BouncyList extends StatefulWidget {
     super.key,
     required List<Widget> children,
     this.scrollDirection = Axis.vertical,
+    this.reverse = false,
     SpringConfiguration? configuration,
   })  : delegate = SliverChildListDelegate(children),
         this.configuration = configuration ??
@@ -20,6 +21,7 @@ class BouncyList extends StatefulWidget {
     super.key,
     required IndexedWidgetBuilder itemBuilder,
     this.scrollDirection = Axis.vertical,
+    this.reverse = false,
     int? itemCount,
     SpringConfiguration? configuration,
   })  : delegate = SliverChildBuilderDelegate(
@@ -35,6 +37,7 @@ class BouncyList extends StatefulWidget {
   final Axis scrollDirection;
   final SliverChildDelegate delegate;
   final SpringConfiguration configuration;
+  final bool reverse;
 
   @override
   State<StatefulWidget> createState() => BouncyListState();
@@ -76,6 +79,7 @@ class BouncyListState extends State<BouncyList> with TickerProviderStateMixin {
         return true;
       },
       child: BouncyScrollView(
+        reverse: widget.reverse,
         scrollDirection: widget.scrollDirection,
         sliversBuilder: (pointerPosition) => [
           BouncySliverList(
