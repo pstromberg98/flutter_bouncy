@@ -38,8 +38,6 @@ class SpringSimulator {
 
   SpringState get state => _state;
 
-  double? _lastMissedVelocity;
-
   SpringSimulator({
     required this.vsync,
     required this.configuration,
