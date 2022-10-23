@@ -1,6 +1,5 @@
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bouncy/flutter_bouncy.dart';
-import 'package:flutter_bouncy/src/widgets/widgets.dart';
 
 class BouncyRenderSliverState {
   final double springLength;
@@ -115,8 +114,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
         addExtent = true;
         break;
     }
-    assert(mainAxisUnit != null);
-    assert(addExtent != null);
+
     RenderBox? child = firstChild;
     while (child != null) {
       final double mainAxisDelta = childMainAxisPosition(child);
@@ -183,6 +181,21 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     int leadingGarbage = 0;
     int trailingGarbage = 0;
     bool reachedEnd = false;
+
+    // Trash leading children that haven't been previously laid out (most likely resulting from reordering).
+    int leadingGarbageWithoutLayout = 0;
+    RenderBox? child = firstChild;
+    while (child != null) {
+      if (childScrollOffset(child) == null) {
+        leadingGarbageWithoutLayout++;
+      } else {
+        break;
+      }
+
+      child = childAfter(child);
+    }
+
+    collectGarbage(leadingGarbageWithoutLayout, 0);
 
     if (firstChild == null) {
       if (!addInitialChild()) {

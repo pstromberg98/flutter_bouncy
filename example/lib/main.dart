@@ -27,17 +27,73 @@ class SpringTest extends StatefulWidget {
 }
 
 class SpringTestState extends State<SpringTest> {
+  late List<Widget> children = [
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(false, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+    _buildChatMessage(true, key: GlobalKey()),
+  ];
+
+  @override
+  void initState() {
+    Stream.periodic(Duration(seconds: 6)).listen((event) {
+      setState(() {
+        children = children.reversed.toList();
+      });
+    });
+    super.initState();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: BouncyList.builder(
-          itemBuilder: (context, index) {
-            return _buildChatMessage(
-              index % 3 == 0,
-              height: index % 3 == 0 ? 25 : 50,
-            );
-          },
+        child: BouncyList(
+          children: children,
         ),
       ),
     );
@@ -46,8 +102,10 @@ class SpringTestState extends State<SpringTest> {
   Widget _buildChatMessage(
     bool isSender, {
     double? height = 25,
+    Key? key,
   }) {
     return Padding(
+      key: key,
       padding: EdgeInsets.symmetric(vertical: 6),
       child: Align(
         alignment: isSender ? Alignment.centerRight : Alignment.centerLeft,

@@ -3,7 +3,7 @@ import 'package:flutter/scheduler.dart';
 class SpringConfiguration {
   final double mass;
   final double k;
-  double damping;
+  final double damping;
 
   SpringConfiguration({
     required this.mass,
