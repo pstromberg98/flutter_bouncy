@@ -1,5 +1,6 @@
 library flutter_bouncy;
 
-export 'src/sliver_bouncy_list.dart';
-export 'src/sliver_animated_bouncy_list.dart';
-export 'src/bouncy_list.dart';
+export 'src/spring_simulator.dart';
+export 'src/pointer_position.dart';
+export 'src/widgets/bouncy_list.dart';
+export 'src/widgets/bouncy_debug.dart';
