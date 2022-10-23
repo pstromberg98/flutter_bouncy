@@ -7,6 +7,7 @@ typedef PointerSliversBuilder = List<Widget> Function(PointerPosition);
 class BouncyScrollView extends ScrollView {
   BouncyScrollView({
     required this.sliversBuilder,
+    required this.simulator,
     super.key,
     super.scrollDirection,
     super.reverse,
@@ -26,6 +27,7 @@ class BouncyScrollView extends ScrollView {
   });
 
   final PointerSliversBuilder sliversBuilder;
+  final SpringSimulator simulator;
 
   final pointerPosition = PointerPosition();
 
@@ -60,13 +62,22 @@ class BouncyScrollView extends ScrollView {
         ? PrimaryScrollController.none(child: scrollable)
         : scrollable;
 
-    scrollableResult = Listener(
-      onPointerMove: (event) {
-        if (event.down) {
-          pointerPosition.updatePosition(event.localPosition);
+    scrollableResult = NotificationListener<ScrollUpdateNotification>(
+      onNotification: (notification) {
+        if (notification.scrollDelta != null) {
+          simulator.setVelocity(notification.scrollDelta!);
         }
+
+        return true;
       },
-      child: scrollableResult,
+      child: Listener(
+        onPointerMove: (event) {
+          if (event.down) {
+            pointerPosition.updatePosition(event.localPosition);
+          }
+        },
+        child: scrollableResult,
+      ),
     );
 
     if (keyboardDismissBehavior == ScrollViewKeyboardDismissBehavior.onDrag) {

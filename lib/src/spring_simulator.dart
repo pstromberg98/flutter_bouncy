@@ -36,6 +36,10 @@ class SpringSimulator {
   late final SpringState _state;
   late final Ticker _ticker;
 
+  SpringState get state => _state;
+
+  double? _lastMissedVelocity;
+
   SpringSimulator({
     required this.vsync,
     required this.configuration,
@@ -59,11 +63,11 @@ class SpringSimulator {
       }
 
       final updatedLength = _state.length + deltaPosition;
+      _state.velocity +=
+          acceleration + -(configuration.damping * _state.velocity);
 
       if (updatedLength != _state.length) {
         _state.length = updatedLength;
-        _state.velocity +=
-            acceleration + -(configuration.damping * _state.velocity);
         _listeners.forEach((listener) => listener(_state));
       }
     });

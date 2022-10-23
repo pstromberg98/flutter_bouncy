@@ -71,25 +71,17 @@ class BouncyListState extends State<BouncyList> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return NotificationListener<ScrollNotification>(
-      onNotification: (notification) {
-        final velocity = notification.metrics.pixels - lastPixels;
-
-        simulator.setVelocity(velocity);
-        lastPixels = notification.metrics.pixels;
-        return true;
-      },
-      child: BouncyScrollView(
-        reverse: widget.reverse,
-        scrollDirection: widget.scrollDirection,
-        sliversBuilder: (pointerPosition) => [
-          BouncySliverList(
-            pointerPosition: pointerPosition,
-            delegate: widget.delegate,
-            simulator: simulator,
-          ),
-        ],
-      ),
+    return BouncyScrollView(
+      reverse: widget.reverse,
+      scrollDirection: widget.scrollDirection,
+      simulator: simulator,
+      sliversBuilder: (pointerPosition) => [
+        BouncySliverList(
+          pointerPosition: pointerPosition,
+          delegate: widget.delegate,
+          simulator: simulator,
+        ),
+      ],
     );
   }
 }
