@@ -54,6 +54,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
         springLength: state.length,
         pointerOffset: _state.pointerOffset,
       );
+
       markNeedsLayout();
     });
   }

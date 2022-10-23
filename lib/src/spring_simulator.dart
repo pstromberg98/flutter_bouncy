@@ -64,7 +64,6 @@ class SpringSimulator {
         _state.length = updatedLength;
         _state.velocity +=
             acceleration + -(configuration.damping * _state.velocity);
-
         _listeners.forEach((listener) => listener(_state));
       }
     });
@@ -72,10 +71,7 @@ class SpringSimulator {
   }
 
   void setVelocity(double velocity) {
-    // TODO: Not sure if this is the best way to do this
-    if (velocity.abs() > _state.velocity.abs()) {
-      _state.velocity = velocity;
-    }
+    _state.velocity = velocity;
   }
 
   void dispose() {

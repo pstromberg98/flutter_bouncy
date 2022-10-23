@@ -74,6 +74,7 @@ class BouncyListState extends State<BouncyList> with TickerProviderStateMixin {
     return NotificationListener<ScrollNotification>(
       onNotification: (notification) {
         final velocity = notification.metrics.pixels - lastPixels;
+
         simulator.setVelocity(velocity);
         lastPixels = notification.metrics.pixels;
         return true;
