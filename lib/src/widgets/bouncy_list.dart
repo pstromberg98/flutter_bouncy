@@ -3,6 +3,11 @@ import 'package:flutter_bouncy/flutter_bouncy.dart';
 import 'package:flutter_bouncy/src/widgets/bouncy_sliver_list.dart';
 import 'package:flutter_bouncy/src/widgets/widgets.dart';
 
+final _defaultSpringConfiguration = SpringConfiguration(
+  mass: 15,
+  k: 0.9,
+);
+
 class BouncyList extends StatefulWidget {
   BouncyList({
     super.key,
@@ -11,11 +16,7 @@ class BouncyList extends StatefulWidget {
     this.reverse = false,
     SpringConfiguration? configuration,
   })  : delegate = SliverChildListDelegate(children),
-        this.configuration = configuration ??
-            SpringConfiguration(
-              mass: 20,
-              k: 1,
-            );
+        this.configuration = configuration ?? _defaultSpringConfiguration;
 
   BouncyList.builder({
     super.key,
@@ -28,11 +29,7 @@ class BouncyList extends StatefulWidget {
           itemBuilder,
           childCount: itemCount,
         ),
-        this.configuration = configuration ??
-            SpringConfiguration(
-              mass: 20,
-              k: 1,
-            );
+        this.configuration = configuration ?? _defaultSpringConfiguration;
 
   final Axis scrollDirection;
   final SliverChildDelegate delegate;

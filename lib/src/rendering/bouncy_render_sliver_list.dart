@@ -70,7 +70,6 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
           : _pointerNotifer!.value.dx;
 
       final scrollOffset = _pointerOffsetToScrollOffset(pointerOffset);
-
       _state = BouncyRenderSliverState(
         springLength: _state.springLength,
         pointerOffset: scrollOffset,
@@ -350,7 +349,9 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   }) {
     final parentData = child.parentData as SliverBouncyParentData;
     parentData.baseOffset = offset - paintExtentOf(child);
-    parentData.springOffset = _springOffset(parentData.baseOffset!);
+    parentData.springOffset = _springOffset(
+      parentData.baseOffset! + (paintExtentOf(child) / 2),
+    );
     return parentData;
   }
 
@@ -360,7 +361,9 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   }) {
     final parentData = child.parentData as SliverBouncyParentData;
     parentData.baseOffset = offset;
-    parentData.springOffset = _springOffset(parentData.baseOffset!);
+    parentData.springOffset = _springOffset(
+      parentData.baseOffset! + (paintExtentOf(child) / 2),
+    );
     return parentData;
   }
 
@@ -388,8 +391,11 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     }
 
     final difference = _state.pointerOffset! - layoutOffset;
-    var yTranslate =
-        (difference / constraints.viewportMainAxisExtent) * _state.springLength;
+    // The spring offset exactly matches the spring simulations length
+    // when the difference between the pointer and layout offset is 2x
+    // the viewport extent
+    var yTranslate = (difference / (constraints.viewportMainAxisExtent * 1.5)) *
+        _state.springLength;
 
     if (difference < 0) {
       yTranslate = -yTranslate;
