@@ -10,11 +10,9 @@ class BouncySliverList extends SliverMultiBoxAdaptorWidget {
     Key? key,
     required SliverChildDelegate delegate,
     required this.scrollDelta,
-    required this.simulator,
     required this.pointerPosition,
   }) : super(key: key, delegate: delegate);
 
-  final SpringSimulator simulator;
   final PointerPosition pointerPosition;
   final ScrollDelta scrollDelta;
 

@@ -42,29 +42,17 @@ class BouncyList extends StatefulWidget {
 }
 
 class BouncyListState extends State<BouncyList> with TickerProviderStateMixin {
-  late SpringSimulator simulator;
   double lastPixels = 0;
 
   @override
   void initState() {
     super.initState();
-    simulator = SpringSimulator(
-      vsync: this,
-      initialLength: 0,
-      configuration: widget.configuration,
-    );
   }
 
   @override
   void didUpdateWidget(BouncyList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.configuration != widget.configuration) {
-      simulator = SpringSimulator(
-        vsync: this,
-        initialLength: 0,
-        configuration: widget.configuration,
-      );
-    }
+    if (oldWidget.configuration != widget.configuration) {}
   }
 
   @override
@@ -72,13 +60,11 @@ class BouncyListState extends State<BouncyList> with TickerProviderStateMixin {
     return BouncyScrollView(
       reverse: widget.reverse,
       scrollDirection: widget.scrollDirection,
-      simulator: simulator,
       sliversBuilder: (pointerPosition, scrollDelta) => [
         BouncySliverList(
           pointerPosition: pointerPosition,
           scrollDelta: scrollDelta,
           delegate: widget.delegate,
-          simulator: simulator,
         ),
       ],
     );

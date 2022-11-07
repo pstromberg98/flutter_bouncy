@@ -9,7 +9,6 @@ typedef PointerSliversBuilder = List<Widget> Function(
 class BouncyScrollView extends ScrollView {
   BouncyScrollView({
     required this.sliversBuilder,
-    required this.simulator,
     super.key,
     super.scrollDirection,
     super.reverse,
@@ -29,7 +28,6 @@ class BouncyScrollView extends ScrollView {
   });
 
   final PointerSliversBuilder sliversBuilder;
-  final SpringSimulator simulator;
 
   final pointerPosition = PointerPosition();
   final scrollDelta = ScrollDelta();

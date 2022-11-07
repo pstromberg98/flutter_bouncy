@@ -16,7 +16,9 @@ class BouncyRenderSliverState {
 typedef StateGetter = BouncyRenderSliverState Function();
 
 class SliverBouncyParentData extends SliverMultiBoxAdaptorParentData {
-  double springOffset = 0.0;
+  double get springOffset => _springOffset;
+
+  double _springOffset = 0.0;
   double? baseOffset;
 
   Spring spring;
@@ -27,7 +29,7 @@ class SliverBouncyParentData extends SliverMultiBoxAdaptorParentData {
 
   void tick() {
     spring.tick();
-    springOffset = spring.state.length;
+    _springOffset = spring.state.length;
   }
 
   @override
