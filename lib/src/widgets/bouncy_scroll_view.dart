@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_bouncy/flutter_bouncy.dart';
+import 'package:flutter_bouncy/src/scroll_delta.dart';
 
-typedef PointerSliversBuilder = List<Widget> Function(PointerPosition);
+typedef PointerSliversBuilder = List<Widget> Function(
+    PointerPosition, ScrollDelta);
 
 class BouncyScrollView extends ScrollView {
   BouncyScrollView({
@@ -30,6 +32,7 @@ class BouncyScrollView extends ScrollView {
   final SpringSimulator simulator;
 
   final pointerPosition = PointerPosition();
+  final scrollDelta = ScrollDelta();
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +68,7 @@ class BouncyScrollView extends ScrollView {
     scrollableResult = NotificationListener<ScrollUpdateNotification>(
       onNotification: (notification) {
         if (notification.scrollDelta != null) {
-          simulator.setVelocity(notification.scrollDelta!);
+          scrollDelta.notify(notification.scrollDelta!);
         }
 
         return true;
@@ -97,6 +100,6 @@ class BouncyScrollView extends ScrollView {
   }
 
   List<Widget> buildSlivers(BuildContext context) {
-    return sliversBuilder(pointerPosition);
+    return sliversBuilder(pointerPosition, scrollDelta);
   }
 }

@@ -1,5 +1,7 @@
 import 'package:flutter/rendering.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_bouncy/flutter_bouncy.dart';
+import 'package:flutter_bouncy/src/scroll_delta.dart';
 
 class BouncyRenderSliverState {
   final double springLength;
@@ -17,6 +19,17 @@ class SliverBouncyParentData extends SliverMultiBoxAdaptorParentData {
   double springOffset = 0.0;
   double? baseOffset;
 
+  Spring spring;
+
+  SliverBouncyParentData({
+    required this.spring,
+  });
+
+  void tick() {
+    spring.tick();
+    springOffset = spring.state.length;
+  }
+
   @override
   set layoutOffset(double? offset) {
     baseOffset = offset;
@@ -33,7 +46,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     required super.childManager,
   });
 
-  SpringSimulator? _simulator;
+  ScrollDelta? _scrollDelta;
   PointerPosition? _pointerNotifer;
 
   BouncyRenderSliverState _state = BouncyRenderSliverState(
@@ -41,22 +54,67 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     pointerOffset: null,
   );
 
-  SpringSimulator? get currentSpringSimulator => _simulator;
   PointerPosition? get currentPointerNotifier => _pointerNotifer;
+  ScrollDelta? get currentScrollDelta => _scrollDelta;
 
-  void attachSpringSimulator(SpringSimulator simulator) {
-    if (_simulator != null) {
-      _simulator!.dispose();
-    }
-    _simulator = simulator;
-    _simulator!.addListener((state) {
-      _state = BouncyRenderSliverState(
-        springLength: state.length,
-        pointerOffset: _state.pointerOffset,
-      );
+  Ticker? _ticker;
+
+  @override
+  void attach(covariant PipelineOwner owner) {
+    super.attach(owner);
+    // Stream.periodic(Duration(seconds: 4)).listen((event) {
+    //   RenderBox? child = firstChild;
+    //   while (child != null) {
+    //     final parentData = child.parentData as SliverBouncyParentData;
+    //     parentData.spring.state.length = 100;
+    //     parentData.tick();
+    //     child = childAfter(child);
+    //   }
+    // });
+    _ticker = Ticker((elapsed) {
+      // tick springs
+      RenderBox? child = firstChild;
+      while (child != null) {
+        final parentData = child.parentData as SliverBouncyParentData;
+        parentData.tick();
+        child = childAfter(child);
+      }
 
       markNeedsLayout();
     });
+    _ticker!.start();
+  }
+
+  @override
+  void detach() {
+    super.detach();
+    if (_ticker != null) {
+      _ticker!.dispose();
+    }
+  }
+
+  void attachScrollDelta(ScrollDelta scrollDelta) {
+    if (_scrollDelta != null) {
+      _scrollDelta!.dispose();
+    }
+    _scrollDelta = scrollDelta;
+    _scrollDelta!.addListener(() => _updateWithScrollDelta(scrollDelta.value));
+  }
+
+  void _updateWithScrollDelta(double delta) {
+    // tick springs
+    RenderBox? child = firstChild;
+    while (child != null) {
+      final parentData = child.parentData as SliverBouncyParentData;
+      if (parentData.baseOffset != null) {
+        var difference = _state.pointerOffset! - parentData.baseOffset!;
+        if (difference < 0) {
+          difference = -difference;
+        }
+        parentData.spring.setVelocity(delta * (difference / 1000));
+      }
+      child = childAfter(child);
+    }
   }
 
   void attachPointerNotifer(PointerPosition pointerNotifier) {
@@ -142,8 +200,26 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
 
   @override
   void setupParentData(RenderBox child) {
-    if (child is! SliverBouncyParentData) {
-      child.parentData = SliverBouncyParentData();
+    if (child.parentData is! SliverBouncyParentData) {
+      final parentData = SliverBouncyParentData(
+        spring: Spring(
+          configuration: SpringConfiguration(
+            mass: 10,
+            k: 0.6,
+            damping: 0.8,
+          ),
+        ),
+      );
+
+      // if (lastChild != null) {
+      //   final firstChildParentData =
+      //       lastChild!.parentData as SliverBouncyParentData;
+      //   parentData.spring.state.length =
+      //       firstChildParentData.spring.state.length;
+      //   parentData.spring.state.velocity =
+      //       firstChildParentData.spring.state.velocity;
+      // }
+      child.parentData = parentData;
     }
   }
 
@@ -206,9 +282,10 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
       // Reset existing children's spring offset
       RenderBox? child = firstChild!;
       while (child != null) {
-        final parentData = (child.parentData as SliverBouncyParentData);
+        final parentData = child.parentData as SliverBouncyParentData;
         if (parentData.baseOffset != null) {
-          parentData.springOffset = 0.0;
+          // TODO(pstromberg): Put this back in
+          // parentData.springOffset = 0.0;
         }
         child = childAfter(child);
       }
@@ -230,6 +307,8 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
     double startOffset = childScrollOffset(leadingChild)!;
     double startBaseOffset = childBaseOffset(leadingChild)!;
     while (startOffset > scrollOffset) {
+      final previousParentData =
+          leadingChild!.parentData as SliverBouncyParentData;
       leadingChild = insertAndLayoutLeadingChild(
         childConstraints,
         parentUsesSize: true,
@@ -241,6 +320,12 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
       }
 
       leadingChild.layout(childConstraints, parentUsesSize: true);
+
+      final parentData = leadingChild.parentData as SliverBouncyParentData;
+      parentData.spring.state.length = previousParentData.spring.state.length;
+      parentData.spring.state.velocity =
+          -previousParentData.spring.state.velocity;
+      parentData.tick();
 
       layoutBeforeOffset(
         child: leadingChild,
@@ -349,9 +434,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   }) {
     final parentData = child.parentData as SliverBouncyParentData;
     parentData.baseOffset = offset - paintExtentOf(child);
-    parentData.springOffset = _springOffset(
-      parentData.baseOffset! + (paintExtentOf(child) / 2),
-    );
+
     return parentData;
   }
 
@@ -361,9 +444,7 @@ class BouncyRenderSliverList extends RenderSliverMultiBoxAdaptor {
   }) {
     final parentData = child.parentData as SliverBouncyParentData;
     parentData.baseOffset = offset;
-    parentData.springOffset = _springOffset(
-      parentData.baseOffset! + (paintExtentOf(child) / 2),
-    );
+
     return parentData;
   }
 

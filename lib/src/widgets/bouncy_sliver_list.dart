@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bouncy/flutter_bouncy.dart';
 import 'package:flutter_bouncy/src/rendering/rendering.dart';
+import 'package:flutter_bouncy/src/scroll_delta.dart';
 
 class BouncySliverList extends SliverMultiBoxAdaptorWidget {
   /// Creates a sliver that places box children in a linear array.
@@ -8,12 +9,14 @@ class BouncySliverList extends SliverMultiBoxAdaptorWidget {
   const BouncySliverList({
     Key? key,
     required SliverChildDelegate delegate,
+    required this.scrollDelta,
     required this.simulator,
     required this.pointerPosition,
   }) : super(key: key, delegate: delegate);
 
   final SpringSimulator simulator;
   final PointerPosition pointerPosition;
+  final ScrollDelta scrollDelta;
 
   @override
   void updateRenderObject(
@@ -22,12 +25,16 @@ class BouncySliverList extends SliverMultiBoxAdaptorWidget {
   ) {
     final widget = context.widget as BouncySliverList;
     final sliver = renderObject as BouncyRenderSliverList;
-    if (widget.simulator != sliver.currentSpringSimulator) {
-      sliver.attachSpringSimulator(widget.simulator);
-    }
+    // if (widget.simulator != sliver.currentSpringSimulator) {
+    //   sliver.attachSpringSimulator(widget.simulator);
+    // }
 
     if (widget.pointerPosition != sliver.currentPointerNotifier) {
       sliver.attachPointerNotifer(widget.pointerPosition);
+    }
+
+    if (widget.scrollDelta != sliver.currentScrollDelta) {
+      sliver.attachScrollDelta(scrollDelta);
     }
 
     super.updateRenderObject(context, renderObject);
@@ -45,8 +52,9 @@ class BouncySliverList extends SliverMultiBoxAdaptorWidget {
         context as SliverMultiBoxAdaptorElement;
 
     final sliver = BouncyRenderSliverList(childManager: element);
-    sliver.attachSpringSimulator(simulator);
+    // sliver.attachSpringSimulator(simulator);
     sliver.attachPointerNotifer(pointerPosition);
+    sliver.attachScrollDelta(scrollDelta);
     return sliver;
   }
 }

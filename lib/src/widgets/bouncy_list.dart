@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bouncy/flutter_bouncy.dart';
+import 'package:flutter_bouncy/src/spring.dart';
 import 'package:flutter_bouncy/src/widgets/bouncy_sliver_list.dart';
 import 'package:flutter_bouncy/src/widgets/widgets.dart';
 
@@ -72,9 +73,10 @@ class BouncyListState extends State<BouncyList> with TickerProviderStateMixin {
       reverse: widget.reverse,
       scrollDirection: widget.scrollDirection,
       simulator: simulator,
-      sliversBuilder: (pointerPosition) => [
+      sliversBuilder: (pointerPosition, scrollDelta) => [
         BouncySliverList(
           pointerPosition: pointerPosition,
+          scrollDelta: scrollDelta,
           delegate: widget.delegate,
           simulator: simulator,
         ),

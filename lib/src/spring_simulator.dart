@@ -1,28 +1,5 @@
 import 'package:flutter/scheduler.dart';
-
-class SpringConfiguration {
-  final double mass;
-  final double k;
-  final double damping;
-
-  SpringConfiguration({
-    required this.mass,
-    required this.k,
-    double? damping,
-  }) : damping = damping ?? 1;
-}
-
-class SpringState {
-  double length;
-  double force;
-  double velocity;
-
-  SpringState({
-    required this.length,
-    required this.force,
-    required this.velocity,
-  });
-}
+import 'package:flutter_bouncy/src/spring.dart';
 
 typedef SpringStateChangeCallback = void Function(SpringState state);
 typedef RemovalFunction = void Function();
